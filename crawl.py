@@ -159,7 +159,7 @@ def clonePostContent(driver, postId = "1902017913316274"):
     try:
         driver.get("https://m.facebook.com/" + str(postId))
 
-        parrentImage = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"E\"}']")
+        parrentImage = []
         contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
 
         #get Content if Have
@@ -168,7 +168,7 @@ def clonePostContent(driver, postId = "1902017913316274"):
 
         #get Image if have
         linksArr = []
-        if (parrentImage):
+        if (len(parrentImage)>0):
             childsImage = parrentImage.find_elements(By.XPATH,".//*")
             for childLink in childsImage:
                 linkImage = childLink.get_attribute('href')
@@ -190,9 +190,10 @@ def clonePostContent(driver, postId = "1902017913316274"):
             postData["content"] = content
         print(postData)
         return postData
-    except:
+    except Exception as e:
+        print(e.msg)
         return False
-        print("Fail clone Post")
+
 
 def writeFileTxtPost(fileName, content, idPost, pathImg="/img/"):
     pathImage = os.getcwd() + pathImg + str(idPost)
@@ -283,9 +284,12 @@ twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
-value = input('Enter 1 to crawl id post of group, enter 2 to crawl content: ')
-if (int(value) == 1):
-    getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
-else:
-    postIds = readData(fileIds)
-    crawlPostData(driver, postIds, 'group')
+# value = input('Enter 1 to crawl id post of group, enter 2 to crawl content: ')
+# if (int(value) == 1):
+#     getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
+# else:
+#     postIds = readData(fileIds)
+#     crawlPostData(driver, postIds, 'group')
+
+postIds = readData(fileIds)
+crawlPostData(driver, postIds, 'group')
