@@ -5,12 +5,13 @@ from selenium.webdriver.chrome.options import Options
 import time
 import requests
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from time import sleep
 import pyotp
 
 # Đoạn script này dùng để khởi tạo 1 chrome profile
 def initDriverProfile():
-    CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
+    CHROMEDRIVER_PATH = './chromedriver.exe'
     WINDOW_SIZE = "1000,2000"
     chrome_options = Options()
     # chrome_options.add_argument("--headless")
@@ -69,11 +70,11 @@ def getCodeFrom2FA(code):
 
 
 def confirm2FA(driver):
-    time.sleep(2)
-    btnRadioClick = driver.find_elements_by_css_selector(
-        "section > section.x > div:nth-child(2) > div > div.y.ba > label > input[type=radio]")[0].click()
-    time.sleep(2)
-    continueBntSubmit = driver.find_elements_by_css_selector("#checkpointSubmitButton-actual-button")[0].click()
+    time.sleep(1)
+    btnRadioClick = driver.find_element(By.CSS_SELECTOR,
+        "section > section.x > div:nth-child(2) > div > div.y.ba > label > input[type=radio]").click()
+    time.sleep(1)
+    continueBntSubmit = driver.find_element(By.CSS_SELECTOR,"#checkpointSubmitButton-actual-button").click()
 
 
 def loginBy2FA(driver, username, password, code):
@@ -81,28 +82,31 @@ def loginBy2FA(driver, username, password, code):
     # changeIp4G()
     # readIp()
     driver.get("https://mbasic.facebook.com/login/?next&ref=dbl&fl&refid=8")
-    sleep(10)
-    userNameElement = driver.find_elements_by_css_selector("#m_login_email")
-    userNameElement[0].send_keys(username)
-    time.sleep(2)
-    passwordElement = driver.find_elements_by_css_selector("#login_form > ul > li:nth-child(2) > section > input")
-    passwordElement[0].send_keys(password)
-    time.sleep(2)
-    btnSubmit = driver.find_elements_by_css_selector("#login_form > ul > li:nth-child(3) > input")
-    btnSubmit[0].click()
-    faCodeElement = driver.find_elements_by_css_selector("#approvals_code")
-    faCodeElement[0].send_keys(str(getCodeFrom2FA(code)))
-    time.sleep(2)
-    btn2fa = driver.find_elements_by_css_selector("#checkpointSubmitButton-actual-button")
-    btn2fa[0].click()
+    sleep(5)
+    userNameElement = driver.find_element(By.CSS_SELECTOR,"#m_login_email")
+    userNameElement.send_keys(username)
+    time.sleep(1)
+    passwordElement = driver.find_element(By.CSS_SELECTOR,"#login_form > ul > li:nth-child(2) > section > input")
+    passwordElement.send_keys(password)
+    time.sleep(1)
+    btnSubmit = driver.find_element(By.CSS_SELECTOR,"#login_form > ul > li:nth-child(3) > input")
+    btnSubmit.click()
+    faCodeElement = driver.find_element(By.CSS_SELECTOR,"#approvals_code")
+    faCodeElement.send_keys(str(getCodeFrom2FA(code)))
+    time.sleep(1)
+    btn2fa = driver.find_element(By.CSS_SELECTOR,"#checkpointSubmitButton-actual-button")
+    btn2fa.click()
     confirm2FA(driver)
-    btn2fa = driver.find_elements_by_css_selector("#checkpointSubmitButton-actual-button")
-    if (len(btn2fa) > 0):
-        btn2fa[0].click()
-        btn2faContinue = driver.find_elements_by_css_selector("#checkpointSubmitButton-actual-button")
-        if (len(btn2faContinue) > 0):
-            btn2faContinue[0].click()
-            confirm2FA(driver)
+    try:
+        btn2fa = driver.find_element(By.CSS_SELECTOR,"#checkpointSubmitButton-actual-button")
+        if (btn2fa):
+            btn2fa.click()
+            btn2faContinue = driver.find_element(By.CSS_SELECTOR,"#checkpointSubmitButton-actual-button")
+            if (btn2faContinue):
+                btn2faContinue.click()
+                confirm2FA(driver)
+    except:
+        print("err")            
     # end login
 
 fileIds = 'post_ids.csv'
@@ -132,7 +136,7 @@ def getPostsGroup(driver, idGroup, numberId):
 
         sumLinks = readData(fileIds)
         while (len(sumLinks) < numberId):
-            likeBtn = driver.find_elements_by_xpath('//*[contains(@id, "like_")]')
+            likeBtn = driver.find_elements(By.XPATH,'//*[contains(@id, "like_")]')
             if len(likeBtn):
                 for id in likeBtn:
                     idPost = id.get_attribute('id').replace("like_", "")
@@ -140,10 +144,10 @@ def getPostsGroup(driver, idGroup, numberId):
                         sumLinks.append(idPost)
                         writeFileTxt(fileIds, idPost)
                         print(idPost)
-            nextBtn = driver.find_elements_by_xpath('//a[contains(@href, "?bacr")]')
-            if (len(nextBtn)):
+            nextBtn = driver.find_element(By.XPATH,'//a[contains(@href, "?bacr")]')
+            if (nextBtn):
                 sleep(6)
-                nextBtn[0].click()
+                nextBtn.click()
             else:
                 print('Next btn does not exist !')
                 break
@@ -154,22 +158,18 @@ def getPostsGroup(driver, idGroup, numberId):
 def clonePostContent(driver, postId = "1902017913316274"):
     try:
         driver.get("https://m.facebook.com/" + str(postId))
-        parrentImage = driver.find_elements_by_xpath("//div[@data-gt='{\"tn\":\"E\"}']")
-        if (len(parrentImage) == 0):
-            parrentImage = driver.find_elements_by_xpath("//div[@data-ft='{\"tn\":\"E\"}']")
 
-        contentElement = driver.find_elements_by_xpath("//div[@data-gt='{\"tn\":\"*s\"}']")
-        if (len(contentElement) == 0):
-            contentElement = driver.find_elements_by_xpath("//div[@data-ft='{\"tn\":\"*s\"}']")
+        parrentImage = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"E\"}']")
+        contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
 
         #get Content if Have
-        if (len(contentElement)):
-            content = contentElement[0].text
+        if (contentElement):
+            content = contentElement.text
 
         #get Image if have
         linksArr = []
-        if (len(parrentImage)):
-            childsImage = parrentImage[0].find_elements_by_xpath(".//*")
+        if (parrentImage):
+            childsImage = parrentImage.find_elements(By.XPATH,".//*")
             for childLink in childsImage:
                 linkImage = childLink.get_attribute('href')
                 if (linkImage != None):
@@ -179,14 +179,14 @@ def clonePostContent(driver, postId = "1902017913316274"):
             linkImgsArr = []
             for link in linksArr:
                 driver.get(link)
-                linkImg = driver.find_elements_by_xpath('//*[@id="MPhotoContent"]/div[1]/div[2]/span/div/span/a[1]')
-                linkImgsArr.append(linkImg[0].get_attribute('href'))
+                linkImg = driver.find_element(By.XPATH,'//*[@id="MPhotoContent"]/div[1]/div[2]/span/div/span/a[1]')
+                linkImgsArr.append(linkImg.get_attribute('href'))
 
         postData = {"post_id": postId, "content" : "", "images": []}
 
         if (len(linkImgsArr)):
             postData["images"] = linkImgsArr
-        if (len(contentElement)):
+        if (contentElement):
             postData["content"] = content
         print(postData)
         return postData
@@ -223,22 +223,22 @@ def joinGroup(driver, idGoup):
     try:
         driver.get("https://mbasic.facebook.com/groups/" + idGoup)
         sleep(1)
-        isJoined = driver.find_elements_by_xpath('//a[contains(@href, "cancelgroup")]')
-        if (len(isJoined) == 0):
+        isJoined = driver.find_element(By.XPATH,'//a[contains(@href, "cancelgroup")]')
+        if (isJoined):
             sleep(1)
-            driver.find_elements_by_css_selector("#root > div.bj > form > input.bu.bv.bw")[0].click()
+            driver.find_element(By.CSS_SELECTOR,"#root > div.bj > form > input.bu.bv.bw").click()
             sleep(1)
             textea = driver.find_elements_by_tag_name("textarea")
 
-            if (len(textea) > 0):
+            if (textea):
                 for el in textea:
                     sleep(1)
                     el.send_keys("oki admin ")
             sleep(1)
-            btnSubmit = driver.find_elements_by_css_selector("#group-membership-criteria-answer-form > div > div > input")
+            btnSubmit = driver.find_element(By.CSS_SELECTOR,"#group-membership-criteria-answer-form > div > div > input")
 
-            if (len(btnSubmit)):
-                btnSubmit[0].click()
+            if (btnSubmit):
+                btnSubmit.click()
                 sleep(1)
         else:
             print("joined")
@@ -276,16 +276,16 @@ def crawlPostData(driver, postIds, type = 'page'):
 driver = initDriverProfile()
 isLogin = checkLiveClone(driver)  # Check live
 print(isLogin)
-userName = '100054222522135'
-passWord = 'GtT71qOMzwgLJV1e'
-twoFa= 'RTWF2XYGJDDQV2F2EPBTF1HCZV4DDMP2N'
+userName = 'haivodoi.nha@gmail.com'
+passWord = 'haivodoi@2022'
+twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 
-if (isLogin == False):
+if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
 value = input('Enter 1 to crawl id post of group, enter 2 to crawl content: ')
 if (int(value) == 1):
-    getPostsGroup(driver, 'vieclamCNTTDaNang', 1000)
+    getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
 else:
     postIds = readData(fileIds)
     crawlPostData(driver, postIds, 'group')
