@@ -10,17 +10,19 @@ from time import sleep
 import pyotp
 
 # Đoạn script này dùng để khởi tạo 1 chrome profile
-def initDriverProfile():
+def initDriverProfile(profile):
     CHROMEDRIVER_PATH = './chromedriver.exe'
-    WINDOW_SIZE = "360,640"
+    WINDOW_SIZE = "375,812"
     mobile_emulation = {
-    "deviceMetrics": { "width": 360, "height": 640, "pixelRatio": 3.0 },
-    "userAgent": "Mozilla/5.0 (Linux; Android 4.2.1; en-us; Nexus 5 Build/JOP40D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Mobile Safari/535.19" }
+        "deviceMetrics": { "width": 375, "height": 812, "pixelRatio": 3.0 },
+        "userAgent": "Mozilla/5.0 (Linux; Android 4.2.1; en-us; Nexus 5 Build/JOP40D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Mobile Safari/535.19"
+    }
 
     chrome_options = Options()
     # chrome_options.add_argument("--headless")
     chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
     chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+    # chrome_options.add_argument("user-data-dir=/home/extreme/.config/google-chrome/" + str(profile))  # Path to your chrome profile
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('disable-infobars')
     chrome_options.add_argument('--disable-gpu') if os.name == 'nt' else None  # Windows workaround
@@ -111,8 +113,8 @@ def loginBy2FA(driver, username, password, code):
             if (btn2faContinue):
                 btn2faContinue.click()
                 confirm2FA(driver)
-    except:
-        print("err")            
+    except Exception as e:
+        print(e.msg)            
     # end login
 
 fileIds = 'post_ids.csv'
@@ -129,11 +131,12 @@ def readData(fileName):
     return data
 
 def writeFileTxt(fileName, content):
-    with open(fileName, 'a') as f1:
-        f1.write(content + os.linesep)
+    with open(fileName, 'a', encoding="utf-8") as f1:
+        f1.write(content + '\n')
 
 def getPostsGroup(driver, idGroup, numberId):
-    joinGroup(driver, idGroup)
+    # joinGroup(driver, idGroup)
+    sleep(2)
     try:
         driver.get('https://mbasic.facebook.com/groups/' + str(idGroup))
         file_exists = os.path.exists(fileIds)
@@ -157,26 +160,59 @@ def getPostsGroup(driver, idGroup, numberId):
             else:
                 print('Next btn does not exist !')
                 break
-    except:
-        print('Error')
+    except Exception as e:
+        print(e.msg)
 
+def crawlPostPageData(driver, idPage, numberId):
+    sleep(2)
+    try:
+        driver.get('https://m.facebook.com/profile.php?id=' + str(idPage) + '&v=timeline')
+        file_exists = os.path.exists(fileIds)
+        if (not file_exists):
+            writeFileTxt(fileIds, '')
+
+        sumLinks = readData(fileIds)
+        while (len(sumLinks) < numberId):
+            likeBtn = driver.find_elements(By.XPATH,'//*[contains(@id, "like_")]')
+            if len(likeBtn):
+                for id in likeBtn:
+                    idPost = id.get_attribute('id').replace("like_", "")
+                    if (idPost not in sumLinks):
+                        sumLinks.append(idPost)
+                        writeFileTxt(fileIds, idPost)
+                        print(idPost)
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")            
+            # nextBtn = driver.find_element(By.XPATH,'//a[contains(@href, "?bacr")]')
+            # if (nextBtn):
+            #     sleep(6)
+            #     nextBtn.click()
+            # else:
+            #     print('Next btn does not exist !')
+            #     break
+    except Exception as e:
+        print(e.msg)
 
 def clonePostContent(driver, postId = "1902017913316274"):
     try:
         driver.get("https://m.facebook.com/" + str(postId))
         sleep(1)
-        parrentImage = []
-        contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
-        # contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
+        parrentImage = driver.find_elements(By.XPATH,"//div[@data-gt='{\"tn\":\"E\"}']")
+        if (len(parrentImage) == 0):
+            parrentImage = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"E\"}']")
+        contentElement = driver.find_elements(By.XPATH,"//div[@data-gt='{\"tn\":\"*s\"}']")
+        if (len(contentElement) == 0):
+            contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
 
         #get Content if Have
-        if (contentElement):
-            content = contentElement.text
-
+        if (len(contentElement)):
+            if(len(contentElement) > 1):
+                content = contentElement[1].text
+            else:
+                content = contentElement[0].text
         #get Image if have
         linksArr = []
         if (len(parrentImage)>0):
-            childsImage = parrentImage.find_elements(By.XPATH,".//*")
+            childsImage = parrentImage[0].find_elements(By.XPATH,".//*")
             for childLink in childsImage:
                 linkImage = childLink.get_attribute('href')
                 if (linkImage != None):
@@ -204,7 +240,7 @@ def clonePostContent(driver, postId = "1902017913316274"):
 
 def writeFileTxtPost(fileName, content, idPost, pathImg="/img/"):
     pathImage = os.getcwd() + pathImg + str(idPost)
-    with open(os.path.join(pathImage, fileName), 'a') as f1:
+    with open(os.path.join(pathImage, fileName), 'a', encoding="utf-8") as f1:
         f1.write(content + os.linesep)
 
 def download_file(url, localFileNameParam = "", idPost = "123456", pathName = "/data/"):
@@ -223,8 +259,8 @@ def download_file(url, localFileNameParam = "", idPost = "123456", pathName = "/
 
             with open(os.path.join(pathImage, local_filename), 'wb') as f:
                 shutil.copyfileobj(r.raw, f)
-    except:
-        print("download file err")
+    except Exception as e:
+        print(e.msg)
 
 
 def joinGroup(driver, idGoup):
@@ -250,38 +286,38 @@ def joinGroup(driver, idGoup):
                 sleep(1)
         else:
             print("joined")
-    except:
-        print("error join!")
+    except Exception as e:
+        print(e.msg)
 
 
 def crawlPostData(driver, postIds, type = 'page'):
     folderPath = "/data_crawl/"
     for id in postIds:
         try:
-            time.sleep(2)
+            time.sleep(1)
             dataPost = clonePostContent(driver, id)
             dataImage = []
             if (dataPost != False):
-                # if (type == 'group'):
-                #     for img in dataPost["images"]:
-                #         driver.get(img)
-                #         dataImage.append(driver.current_url)
-                # else:
-                #     dataImage = dataPost["images"]
+                if (type == 'group'):
+                    for img in dataPost["images"]:
+                        driver.get(img)
+                        dataImage.append(driver.current_url)
+                else:
+                    dataImage = dataPost["images"]
 
                 postId = str(dataPost['post_id'])
                 postContent = str(dataPost['content'])
                 stt = 0
-                # for img in dataImage:
-                #     stt += 1
-                #     download_file(img, str(stt), postId, folderPath)
-                writeFileTxt(folderPath + 'post_crawl.csv', str(id))
-                writeFileTxtPost(folderPath + 'content.csv', postContent, postId, folderPath)
-        except:
-            print("crawl fail")
+                for img in dataImage:
+                    stt += 1
+                    download_file(img, str(stt) + '.jpg', postId, folderPath)
+                writeFileTxt('post_crawl.csv', str(id))
+                writeFileTxtPost('content.csv', postContent, postId, folderPath)
+        except Exception as e:
+            print(e)
 
 
-driver = initDriverProfile()
+driver = initDriverProfile(None)
 isLogin = checkLiveClone(driver)  # Check live
 print(isLogin)
 userName = 'haivodoi.nha@gmail.com'
@@ -291,12 +327,9 @@ twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
-# value = input('Enter 1 to crawl id post of group, enter 2 to crawl content: ')
-# if (int(value) == 1):
-#     getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
-# else:
-#     postIds = readData(fileIds)
-#     crawlPostData(driver, postIds, 'group')
-
+# getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
 postIds = readData(fileIds)
 crawlPostData(driver, postIds, 'group')
+
+# crawlPostPageData(driver, '100055060129632', 10)
+
