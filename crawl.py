@@ -12,9 +12,14 @@ import pyotp
 # Đoạn script này dùng để khởi tạo 1 chrome profile
 def initDriverProfile():
     CHROMEDRIVER_PATH = './chromedriver.exe'
-    WINDOW_SIZE = "1000,2000"
+    WINDOW_SIZE = "360,640"
+    mobile_emulation = {
+    "deviceMetrics": { "width": 360, "height": 640, "pixelRatio": 3.0 },
+    "userAgent": "Mozilla/5.0 (Linux; Android 4.2.1; en-us; Nexus 5 Build/JOP40D) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.166 Mobile Safari/535.19" }
+
     chrome_options = Options()
     # chrome_options.add_argument("--headless")
+    chrome_options.add_experimental_option("mobileEmulation", mobile_emulation)
     chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('disable-infobars')
@@ -72,7 +77,7 @@ def getCodeFrom2FA(code):
 def confirm2FA(driver):
     time.sleep(1)
     btnRadioClick = driver.find_element(By.CSS_SELECTOR,
-        "section > section.x > div:nth-child(2) > div > div.y.ba > label > input[type=radio]").click()
+        "input[value='dont_save']").click()
     time.sleep(1)
     continueBntSubmit = driver.find_element(By.CSS_SELECTOR,"#checkpointSubmitButton-actual-button").click()
 
@@ -81,12 +86,13 @@ def loginBy2FA(driver, username, password, code):
     # changeMacAdrress()
     # changeIp4G()
     # readIp()
+
     driver.get("https://mbasic.facebook.com/login/?next&ref=dbl&fl&refid=8")
-    sleep(5)
+    sleep(2)
     userNameElement = driver.find_element(By.CSS_SELECTOR,"#m_login_email")
     userNameElement.send_keys(username)
     time.sleep(1)
-    passwordElement = driver.find_element(By.CSS_SELECTOR,"#login_form > ul > li:nth-child(2) > section > input")
+    passwordElement = driver.find_element(By.XPATH,"//*[@id='password_input_with_placeholder']/input")
     passwordElement.send_keys(password)
     time.sleep(1)
     btnSubmit = driver.find_element(By.CSS_SELECTOR,"#login_form > ul > li:nth-child(3) > input")
@@ -158,9 +164,10 @@ def getPostsGroup(driver, idGroup, numberId):
 def clonePostContent(driver, postId = "1902017913316274"):
     try:
         driver.get("https://m.facebook.com/" + str(postId))
-
+        sleep(1)
         parrentImage = []
         contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
+        # contentElement = driver.find_element(By.XPATH,"//div[@data-ft='{\"tn\":\"*s\"}']")
 
         #get Content if Have
         if (contentElement):
@@ -254,22 +261,22 @@ def crawlPostData(driver, postIds, type = 'page'):
             time.sleep(2)
             dataPost = clonePostContent(driver, id)
             dataImage = []
-            if (dataPost != False and len(dataPost["images"])):
-                if (type == 'group'):
-                    for img in dataPost["images"]:
-                        driver.get(img)
-                        dataImage.append(driver.current_url)
-                else:
-                    dataImage = dataPost["images"]
+            if (dataPost != False):
+                # if (type == 'group'):
+                #     for img in dataPost["images"]:
+                #         driver.get(img)
+                #         dataImage.append(driver.current_url)
+                # else:
+                #     dataImage = dataPost["images"]
 
                 postId = str(dataPost['post_id'])
                 postContent = str(dataPost['content'])
                 stt = 0
-                for img in dataImage:
-                    stt += 1
-                    download_file(img, str(stt), postId, folderPath)
-                writeFileTxt('post_crawl.csv', str(id))
-                writeFileTxtPost('content.csv', postContent, postId, folderPath)
+                # for img in dataImage:
+                #     stt += 1
+                #     download_file(img, str(stt), postId, folderPath)
+                writeFileTxt(folderPath + 'post_crawl.csv', str(id))
+                writeFileTxtPost(folderPath + 'content.csv', postContent, postId, folderPath)
         except:
             print("crawl fail")
 
