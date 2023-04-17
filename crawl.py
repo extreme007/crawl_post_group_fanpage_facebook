@@ -8,6 +8,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from time import sleep
 import pyotp
+import json
 
 # Đoạn script này dùng để khởi tạo 1 chrome profile
 def initDriverProfile(profile):
@@ -243,6 +244,15 @@ def writeFileTxtPost(fileName, content, idPost, pathImg="/img/"):
     with open(os.path.join(pathImage, fileName), 'a', encoding="utf-8") as f1:
         f1.write(content + os.linesep)
 
+def writeJson(data,path):
+    json_object = json.dumps(data, indent = 4,ensure_ascii=False)
+    with open(path, 'w',encoding='utf-8') as json_file:
+        json_file.write(json_object)
+
+def readJson(path):
+    with open(path, 'r',encoding="utf8") as f:
+        return json.load(f)  
+
 def download_file(url, localFileNameParam = "", idPost = "123456", pathName = "/data/"):
     try:
         if not os.path.exists(pathName.replace('/', '')):
@@ -306,13 +316,14 @@ def crawlPostData(driver, postIds, type = 'page'):
                     dataImage = dataPost["images"]
 
                 postId = str(dataPost['post_id'])
-                postContent = str(dataPost['content'])
+                # postContent = str(dataPost['content'])
                 stt = 0
                 for img in dataImage:
                     stt += 1
                     download_file(img, str(stt) + '.jpg', postId, folderPath)
                 writeFileTxt('post_crawl.csv', str(id))
-                writeFileTxtPost('content.csv', postContent, postId, folderPath)
+                # writeFileTxtPost('content.csv', postContent, postId, folderPath)
+                writeJson(dataPost,f"data_crawl/{postId}/content.json")
         except Exception as e:
             print(e)
 
@@ -327,9 +338,13 @@ twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
-# getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
+getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
 postIds = readData(fileIds)
 crawlPostData(driver, postIds, 'group')
+driver.close()
+
+
+
 
 # crawlPostPageData(driver, '100055060129632', 10)
 
