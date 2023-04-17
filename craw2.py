@@ -9,7 +9,6 @@ from selenium.webdriver.common.by import By
 from time import sleep
 import pyotp
 import json
-from tqdm import tqdm
 
 # Đoạn script này dùng để khởi tạo 1 chrome profile
 def initDriverProfile(profile):
@@ -140,34 +139,6 @@ def getPostsGroup(driver, idGroup, numberId):
     # joinGroup(driver, idGroup)
     sleep(2)
     try:
-        driver.get('https://mbasic.facebook.com/groups/' + str(idGroup))
-        file_exists = os.path.exists(fileIds)
-        if (not file_exists):
-            writeFileTxt(fileIds, '')
-
-        sumLinks = readData(fileIds)
-        while (len(sumLinks) < numberId):
-            likeBtn = driver.find_elements(By.XPATH,'//*[contains(@id, "like_")]')
-            if len(likeBtn):
-                for id in likeBtn:
-                    idPost = id.get_attribute('id').replace("like_", "")
-                    if (idPost not in sumLinks):
-                        sumLinks.append(idPost)
-                        writeFileTxt(fileIds, idPost)
-                        print(idPost)
-            nextBtn = driver.find_element(By.XPATH,'//a[contains(@href, "?bacr")]')
-            if (nextBtn):
-                sleep(6)
-                nextBtn.click()
-            else:
-                print('Next btn does not exist !')
-                break
-    except Exception as e:
-        print(e.msg)
-
-def getPostsPage(driver, idGroup, numberId):
-    sleep(2)
-    try:
         driver.get('https://mbasic.facebook.com/profile.php?id='+ str(idGroup) + '&v=timeline')
         file_exists = os.path.exists(fileIds)
         if (not file_exists):
@@ -217,7 +188,7 @@ def clonePostContent(driver, postId = "1902017913316274"):
             for childLink in childsImage:
                 linkImage = childLink.get_attribute('href')
                 if (linkImage != None):
-                    linksArr.append(linkImage.replace("m.facebook", "mbasic.facebook"))
+                    linksArr.append(linkImage)
         linkImgsArr = []
         if (len(linksArr)):
             linkImgsArr = []
@@ -227,8 +198,9 @@ def clonePostContent(driver, postId = "1902017913316274"):
                     linkImg = driver.find_element(By.XPATH,'//*[@id="MPhotoContent"]/div[1]/div[2]/span/div/span/a[1]')
                     linkImgsArr.append(linkImg.get_attribute('href'))
             except Exception:
-                pass
-
+                pass        
+    
+                    
         postData = {"post_id": postId, "content" : "", "images": []}
 
         if (len(linkImgsArr)):
@@ -258,36 +230,20 @@ def readJson(path):
 
 def download_file(url, localFileNameParam = "", idPost = "123456", pathName = "/data/"):
     try:
-        # if not os.path.exists(pathName.replace('/', '')):
-        #     os.mkdir(pathName.replace('/', ''))
+        if not os.path.exists(pathName.replace('/', '')):
+            os.mkdir(pathName.replace('/', ''))
 
         local_filename = url.split('/')[-1]
         if local_filename:
             local_filename = localFileNameParam
+        with requests.get(url, stream=True) as r:
+            pathImage = os.getcwd() + pathName + str(idPost)
 
-        # with requests.get(url, stream=True) as r:
-        #     pathImage = os.getcwd() + pathName + str(idPost)
+            if (os.path.exists(pathImage) == False):
+                os.mkdir(pathImage)
 
-        #     if (os.path.exists(pathImage) == False):
-        #         os.mkdir(pathImage)
-
-        #     with open(os.path.join(pathImage, local_filename), 'wb') as f:
-        #         shutil.copyfileobj(r.raw, f)
-
-        response = requests.get(url, stream=True)
-        if response.status_code == 202 or response.status_code == 200:
-            extension = str('.'+ response.headers['content-type'].split("/")[1])
-            fileNameEx = local_filename + extension
-
-            total_size_in_bytes= int(response.headers.get('content-length', 0))
-            block_size = 1024
-            progress_bar = tqdm(desc=f"=======> Download Image {fileNameEx}:", total=total_size_in_bytes, unit='iB', unit_scale=True, unit_divisor=block_size,leave=False)
-            with open(f"{pathName}/{idPost}/{fileNameEx}", 'wb') as file:
-                for data in response.iter_content(block_size):
-                    progress_bar.update(len(data))
-                    file.write(data)
-            progress_bar.close()
- 
+            with open(os.path.join(pathImage, local_filename), 'wb') as f:
+                shutil.copyfileobj(r.raw, f)
     except Exception as e:
         print(e.msg)
 
@@ -320,7 +276,7 @@ def joinGroup(driver, idGoup):
 
 
 def crawlPostData(driver, postIds, type = 'page'):
-    folderPath = "data_crawl/"
+    folderPath = "/data_crawl/"
     for id in postIds:
         try:
             time.sleep(1)
@@ -336,16 +292,13 @@ def crawlPostData(driver, postIds, type = 'page'):
 
                 postId = str(dataPost['post_id'])
                 # postContent = str(dataPost['content'])
-
-                if (os.path.exists(f'{folderPath}/{postId}') == False):
-                    os.mkdir(f'{folderPath}/{postId}')
                 stt = 0
                 for img in dataImage:
                     stt += 1
-                    download_file(img, str(stt), postId, folderPath)
+                    download_file(img, str(stt) + '.jpg', postId, folderPath)
                 writeFileTxt('post_crawl.csv', str(id))
                 # writeFileTxtPost('content.csv', postContent, postId, folderPath)
-                writeJson(dataPost,f"{folderPath}/{postId}/content.json")
+                writeJson(dataPost,f"./data_crawl/{postId}/content.json")
         except Exception as e:
             print(e)
 
@@ -360,9 +313,8 @@ twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
-# getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
-# getPostsPage(driver, '100055060129632', 10)
-
+# getPostsGroup(driver, '100055060129632', 10)
 postIds = readData(fileIds)
-crawlPostData(driver, postIds, 'page')
+crawlPostData(driver, postIds, 'group')
 driver.close()
+
