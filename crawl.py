@@ -53,6 +53,7 @@ def initDriverProfile(profile):
     driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH,
                               options=chrome_options
                               )
+    driver.set_page_load_timeout(60)
     return driver
 
 
@@ -322,6 +323,10 @@ def joinGroup(driver, idGoup):
 def crawlPostData(driver, postIds, type = 'page'):
     folderPath = "data_crawl/"
     for id in postIds:
+        dataCrawled = readData('post_crawl.csv')
+        if id in dataCrawled:
+            continue
+
         try:
             time.sleep(1)
             dataPost = clonePostContent(driver, id)
@@ -360,9 +365,9 @@ twoFa= 'CLDUGA4T53OSQHKNEJI7Q2GHRSFXPYFH'
 if (isLogin == False or isLogin == None):
     loginBy2FA(driver, userName, passWord, twoFa)
 
-# getPostsGroup(driver, 'vieclamCNTTDaNang', 10)
+getPostsGroup(driver, '1532601343427140', 10)
 # getPostsPage(driver, '100055060129632', 10)
 
 postIds = readData(fileIds)
-crawlPostData(driver, postIds, 'page')
+crawlPostData(driver, postIds, 'group')
 driver.close()
